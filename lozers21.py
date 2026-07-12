@@ -14,7 +14,7 @@ os.system("title Chatapp")
 os.system("")
 
 CHAT_FILE = r"N:\ft5vft5 bvyh5_data\e08\d08\c08\setup log.txt"
-CHAT_FILE = 'chat.txt'
+CHAT_FILE = r'chat.txt'
 LOCKDOWN_STRING = """
 
 Logging service unavailable (error 0x15)
@@ -51,6 +51,7 @@ input_buffer = ""
 username     = ""
 console_lock = threading.Lock()
 state_lock   = threading.Lock()
+_file_lock   = threading.Lock()
 
 HELP_MENU = f"""
 {PREFIX}help        -Returns this help menu
@@ -102,26 +103,23 @@ def _load():
     try:
         if not os.path.exists(CHAT_FILE):
             return []
-        
+
         lines = []
-        # Open in read mode with error ignoring for smooth parsing
         with open(CHAT_FILE, "r", encoding="utf-8", errors="ignore") as f:
             for line in f:
                 line = line.strip()
                 if not line:
                     continue
                 try:
-                    # Individual decoding shields against partial/corrupted writes
                     decoded = base64.b64decode(line.encode()).decode("utf-8")
                     if decoded.strip():
                         lines.append(decoded)
-                except Exception:
-                    if line == LOCKDOWN_STRING:
-                        pass 
+                except Exception as e:
+                    # was: silently pass — now at least visible during debugging
+                    continue
     except Exception:
         return []
     return lines
-
 
 def _is_locked_down():
     try:
@@ -134,18 +132,19 @@ def _is_locked_down():
         return False
 
 
+
 def _append(message, bypass_lockdown=False):
     if not bypass_lockdown and _is_locked_down():
         return
-
     encoded_msg = base64.b64encode(message.encode("utf-8")).decode("ascii")
-
     try:
-        with open(CHAT_FILE, "a", encoding="utf-8") as f:
-            f.write(encoded_msg + "\n")
+        with _file_lock:
+            with open(CHAT_FILE, "a", encoding="utf-8") as f:
+                f.write(encoded_msg + "\n")
+                f.flush()
+                os.fsync(f.fileno())
     except Exception:
         pass
-
 
 def _hide_prompt():
     width = len(input_buffer) + 2
