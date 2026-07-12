@@ -14,6 +14,7 @@ os.system("title Chatapp")
 os.system("")
 
 CHAT_FILE = r"N:\ft5vft5 bvyh5_data\e08\d08\c08\setup log.txt"
+CHAT_FILE = 'chat.txt'
 LOCKDOWN_STRING = """
 
 Logging service unavailable (error 0x15)
